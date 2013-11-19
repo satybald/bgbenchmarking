@@ -1,15 +1,17 @@
 #!/bin/sh
 
-BG_HOME="/Users/sayatsatybaldiyev/Documents/Education/USC/CS685_Advanced_DB/software/BG"
+BG_HOME="/home/sayats/mongo/BGClient.new"
 
-HOST_IP="127.0.0.1"
-DB_NAME="local0"
+HOST_IP=10.0.0.240
+DB_NAME=bg_db_v2
 THREAD_COUNT=10
 INSERT_IMAGE=true
-MAX_EXEC_TIME=600
+MAX_EXEC_TIME=100
 USER_COUNT=1000
 
 CreateSchema(){
+
+    ls -la $BG_HOME/workloads/populateDB
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
         -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME
 
@@ -29,7 +31,7 @@ PopulateData(){
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
     -load -db mongoDB.MongoDbClient -P $BG_HOME/workloads/populateDB \
     -p mongodb.url=$HOST_IP:27017 -p insertimage=$INSERT_IMAGE -p threadcount=$THREAD_COUNT \
-    -p mongodb.writeConcern=normal -p mongodb.database=$DB_NAME
+    -p mongodb.writeConcern=strict -p mongodb.database=$DB_NAME
 
     ret=$?
     if [ "$ret" -ne "0" ] 
@@ -46,7 +48,7 @@ Workload(){
     java -Xmx1024M -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
     -t -db mongoDB.MongoDbClient \
     -P $BG_HOME/workloads/SymmetricHighUpdateActions -s \
-    -p mongodb.url=$HOST_IP:27017 -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=normal \
+    -p mongodb.url=$HOST_IP:27017 -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=strict \
     -p mongodb.database=$DB_NAME -p exportfile=thread0.10.07.txt -p ratingmode=false \
     -p maxexecutiontime=$MAX_EXEC_TIME -p initapproach=querydata -p usercount=$USER_COUNT
 
@@ -70,10 +72,10 @@ Workload(){
 # }
 
 echo "****** Creating Schema ******"
-# CreateSchema
+CreateSchema
 
 echo "****** Populating Data ******"
-# PopulateData
+PopulateData
 
 echo "****** Benchmarking  ********"
 Workload
