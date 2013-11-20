@@ -1,17 +1,17 @@
 #!/bin/sh
 
-BG_HOME="/home/sayats/mongo/BGClient.new"
+BG_HOME="/usr/local/mongo/BGClient"
 
 HOST_IP=10.0.0.240
-DB_NAME=bg_db_v2
+DB_NAME=bg_single
 THREAD_COUNT=10
 INSERT_IMAGE=true
-MAX_EXEC_TIME=100
-USER_COUNT=1000
+MAX_EXEC_TIME=600
+USER_COUNT=10000
+RES_PER_USER=100
+FRIEND_PER_USER=100
 
 CreateSchema(){
-
-    ls -la $BG_HOME/workloads/populateDB
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
         -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME
 
@@ -27,9 +27,11 @@ CreateSchema(){
 }
 
 PopulateData(){
-    ls -la $BG_HOME/workloads/populateDB
+#   ls -la $BG_HOME/workloads/populateDB
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
-    -load -db mongoDB.MongoDbClient -P $BG_HOME/workloads/populateDB \
+    -load -db mongoDB.MongoDbClient \
+    -P $BG_HOME/workloads/populateDB \
+    -p resourcecountperuser=$RES_PER_USER -p friendcountperuser=$FRIEND_PER_USER -p usercount=$USER_COUNT \
     -p mongodb.url=$HOST_IP:27017 -p insertimage=$INSERT_IMAGE -p threadcount=$THREAD_COUNT \
     -p mongodb.writeConcern=strict -p mongodb.database=$DB_NAME
 
@@ -62,14 +64,6 @@ Workload(){
     fi
 
 }
-# -t -db MongoDB.MongoDbClient -P workloads/ViewProfileAction -s -p threadcount=1 -p mongodb.writeConcern=normal -p mongodb.database=benchmark -p maxexecutiontime=100 -p mongodb.url=10.0.0.122:27017 -p ratingmode=false 
-
-# -t -db TestDS.TestDSClient -P C:/BG/workloads/MixOfAction -p maxexecutiontime=30 -p usercount=1000 -p initapproach=querydata
-# }
-
-# Stats(){
-#     java -cp build/bg.jar:db/MongoDB/lib/* edu.usc.bg.base.Client -stats -db mongoDB.MongoDbClient -P $BG_HOME/workloads/SymmetricHighUpdateActions -s -p mongodb.url=127.0.0.1:27017 -p threadcount=1 -p mongodb.writeConcern="normal" -p mongodb.database=local -p maxexecutiontime=600 -p usercount=100 -p initapproach=querydata -p exportfile=thread1.txt -p ratingmode=false 
-# }
 
 echo "****** Creating Schema ******"
 CreateSchema
