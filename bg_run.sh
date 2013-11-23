@@ -1,17 +1,21 @@
 #!/bin/sh
 
-BG_HOME="/Users/sayatsatybaldiyev/Documents/Education/USC/CS685_Advanced_DB/software/BG"
+BG_HOME="/Users/tashiba/Documents/Sayat/USC/CS685/BGClient/BGNew"
 
-HOST_IP="127.0.0.1"
-DB_NAME="local0"
+POP_DATA=0
+SCHEMA=0
+WORK=1
+
+HOST_IP=127.0.0.1
+DB_NAME=bg_db
 THREAD_COUNT=10
 INSERT_IMAGE=true
-MAX_EXEC_TIME=600
-USER_COUNT=1000
+MAX_EXEC_TIME=100
+USER_COUNT=100
 
 CreateSchema(){
-    java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
-        -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME
+    java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
+    onetime -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME
 
     ret=$?
     if [ "$ret" -ne "0" ] 
@@ -26,10 +30,10 @@ CreateSchema(){
 
 PopulateData(){
     ls -la $BG_HOME/workloads/populateDB
-    java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
-    -load -db mongoDB.MongoDbClient -P $BG_HOME/workloads/populateDB \
+    java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
+    onetime -load -db mongoDB.MongoDbClient -P $BG_HOME/workloads/populateDB \
     -p mongodb.url=$HOST_IP:27017 -p insertimage=$INSERT_IMAGE -p threadcount=$THREAD_COUNT \
-    -p mongodb.writeConcern=normal -p mongodb.database=$DB_NAME
+    -p mongodb.writeConcern=strict -p mongodb.database=$DB_NAME
 
     ret=$?
     if [ "$ret" -ne "0" ] 
@@ -43,10 +47,10 @@ PopulateData(){
 }
 
 Workload(){
-    java -Xmx1024M -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.base.Client \
-    -t -db mongoDB.MongoDbClient \
+    java -Xmx1024M -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
+    onetime -t -db mongoDB.MongoDbClient \
     -P $BG_HOME/workloads/SymmetricHighUpdateActions -s \
-    -p mongodb.url=$HOST_IP:27017 -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=normal \
+    -p mongodb.url=$HOST_IP:27017 -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=strict \
     -p mongodb.database=$DB_NAME -p exportfile=thread0.10.07.txt -p ratingmode=false \
     -p maxexecutiontime=$MAX_EXEC_TIME -p initapproach=querydata -p usercount=$USER_COUNT
 
@@ -69,13 +73,22 @@ Workload(){
 #     java -cp build/bg.jar:db/MongoDB/lib/* edu.usc.bg.base.Client -stats -db mongoDB.MongoDbClient -P $BG_HOME/workloads/SymmetricHighUpdateActions -s -p mongodb.url=127.0.0.1:27017 -p threadcount=1 -p mongodb.writeConcern="normal" -p mongodb.database=local -p maxexecutiontime=600 -p usercount=100 -p initapproach=querydata -p exportfile=thread1.txt -p ratingmode=false 
 # }
 
-echo "****** Creating Schema ******"
-# CreateSchema
+if [ "$SCHEMA" -eq 1 ]
+    then
+    echo "****** Creating Schema ******"
+    CreateSchema
+fi
 
-echo "****** Populating Data ******"
-# PopulateData
+if [ "$POP_DATA" -eq 1 ]
+    then
+    echo "****** Populating Data ******"
+    PopulateData
+fi
 
-echo "****** Benchmarking  ********"
-Workload
+if [ "$WORK" -eq 1 ]
+    then
+    echo "****** Benchmarking  ********"
+    Workload
+fi
 
 
