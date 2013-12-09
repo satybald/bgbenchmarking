@@ -11,11 +11,11 @@ WORK=1
 SHARD_TABLE="users"
 HOST_IP=10.0.0.130
 PORT=37017
-DB_NAME=bg_shard10
+DB_NAME=bg_shard100K
 THREAD_COUNT=10
-INSERT_IMAGE=true
-MAX_EXEC_TIME=200
-USER_COUNT=1000000
+INSERT_IMAGE=false
+MAX_EXEC_TIME=300
+USER_COUNT=100000
 RES_PER_USER=10
 FRIEND_PER_USER=10
 
@@ -86,12 +86,12 @@ PopulateData(){
 Workload(){
     java -Xmx10G -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
     onetime -t -db mongoDB.MongoDbClient \
-    -P $BG_HOME/workloads/SymmetricHighUpdateActions -s \
+    -P $BG_HOME/workloads/HighUpdateActions -s \
     -p mongodb.url=$HOST_IP:$PORT -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=strict \
     -p mongodb.database=$DB_NAME -p exportfile=thread0.10.07.txt -p ratingmode=false \
     -p maxexecutiontime=$MAX_EXEC_TIME -p initapproach=deterministic -p usercount=$USER_COUNT \
     -p resourcecountperuser=$RES_PER_USER -p friendcountperuser=$FRIEND_PER_USER \
-    -p numloadthreads=$THREAD_COUNT \
+    -p numloadthreads=10 \
     -P $BG_HOME/workloads/populateDB
 
     ret=$?
