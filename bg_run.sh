@@ -1,25 +1,26 @@
 #!/bin/sh
 
-BG_HOME="/Users/tashiba/Documents/Sayat/USC/CS685/BGClient/BGNew"
+BG_HOME="/home/dblab/mongo/BG"
 
 DROP_DB=0
 SHARD=0
-SCHEMA=1
-POP_DATA=1
-WORK=0
+SCHEMA=0
+POP_DATA=0
+WORK=1
 
 SHARD_TABLE="users"
-HOST_IP=127.0.0.1
-DB_NAME=bg_singlev10
+HOST_IP=10.0.0.130
+PORT=37017
+DB_NAME=bg_shard10
 THREAD_COUNT=10
 INSERT_IMAGE=true
-MAX_EXEC_TIME=600
-USER_COUNT=100000
-RES_PER_USER=1000
-FRIEND_PER_USER=1000
+MAX_EXEC_TIME=200
+USER_COUNT=1000000
+RES_PER_USER=10
+FRIEND_PER_USER=10
 
 dropDB(){
-   mongo $HOST_IP/$DB_NAME <<EOF
+   mongo $HOST_IP:$PORT/$DB_NAME <<EOF
    use $DB_NAME
    db.dropDatabase();
 EOF
@@ -27,7 +28,7 @@ EOF
 
 CreateSchema(){
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
-    onetime -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME
+    onetime -schema -db mongoDB.MongoDbClient -p mongodb.url=$HOST_IP:27017 -p mongodb.database=$DB_NAME -p port=$PORT
 
     ret=$?
     if [ "$ret" -ne "0" ] 
@@ -41,7 +42,7 @@ CreateSchema(){
 }
 
 ShardDB(){
-   mongo $HOST_IP/$DB_NAME <<EOF
+   mongo $HOST_IP:$PORT/$DB_NAME <<EOF
    sh.enableSharding("$DB_NAME");
    use $DB_NAME
    db.users.ensureIndex({ _id: "hashed"})
@@ -64,14 +65,12 @@ EOF
     # -P $BG_HOME/workloads/populateDB \
 PopulateData(){
     java -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
-    onetime -load -db mongoDB.MongoDbClient \
-    -p mongodb.url=$HOST_IP:27017 -p insertimage=$INSERT_IMAGE -p threadcount=$THREAD_COUNT \
+    onetime -loadindex -db mongoDB.MongoDbClient \
+    -p mongodb.url=$HOST_IP:$PORT -p insertimage=$INSERT_IMAGE -p threadcount=$THREAD_COUNT \
     -p mongodb.writeConcern=strict -p mongodb.database=$DB_NAME \
-    -p userworkload="edu.usc.bg.workloads.UserWorkload" -p friendshipworkload="edu.usc.bg.workloads.FriendshipWorkload" \
-    -p resourceworkload="edu.usc.bg.workloads.ResourceWorkload" \
-    -p usercount=$USER_COUNT -p useroffset=0 -p confperc=1 \
+    -p usercount=$USER_COUNT \
     -p resourcecountperuser=$RES_PER_USER -p friendcountperuser=$FRIEND_PER_USER \
-    -p requestdistribution=dzipfian -p zipfianmean=0.27
+    -P $BG_HOME/workloads/populateDB
 
     ret=$?
     if [ "$ret" -ne "0" ] 
@@ -85,12 +84,15 @@ PopulateData(){
 }
 
 Workload(){
-    java -Xmx1024M -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
+    java -Xmx10G -cp $BG_HOME/build/bg.jar:$BG_HOME/db/MongoDB/lib/* edu.usc.bg.BGMainClass \
     onetime -t -db mongoDB.MongoDbClient \
     -P $BG_HOME/workloads/SymmetricHighUpdateActions -s \
-    -p mongodb.url=$HOST_IP:27017 -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=strict \
+    -p mongodb.url=$HOST_IP:$PORT -p threadcount=$THREAD_COUNT -p mongodb.writeConcern=strict \
     -p mongodb.database=$DB_NAME -p exportfile=thread0.10.07.txt -p ratingmode=false \
-    -p maxexecutiontime=$MAX_EXEC_TIME -p initapproach=querydata -p usercount=$USER_COUNT
+    -p maxexecutiontime=$MAX_EXEC_TIME -p initapproach=deterministic -p usercount=$USER_COUNT \
+    -p resourcecountperuser=$RES_PER_USER -p friendcountperuser=$FRIEND_PER_USER \
+    -p numloadthreads=$THREAD_COUNT \
+    -P $BG_HOME/workloads/populateDB
 
     ret=$?
     if [ "$ret" -ne "0" ] 
